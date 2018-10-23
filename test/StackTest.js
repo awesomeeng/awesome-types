@@ -78,6 +78,16 @@ describe("Stack",function(){
 		assert.equal(stack.pop(),undefined);
 	});
 
+	it("clear",function(){
+		let stack = new AwesomeTypes.collections.Stack(1,2,3,4);
+		assert.deepStrictEqual(items(stack),[1,2,3,4]);
+		assert.equal(stack.length,4);
+
+		stack.clear();
+		assert.deepStrictEqual(items(stack),[]);
+		assert.equal(stack.length,0);
+	});
+
 	it("clone",function(){
 		let stack1,stack2;
 

@@ -66,6 +66,12 @@ class TimerPool {
 
 		return true;
 	}
+
+	removeAllTimers() {
+		this[$POOL].clear();
+
+		schedule.call(this);
+	}
 }
 
 const comparator = function comparator(a,b) {

@@ -34,6 +34,10 @@ class Stack {
 		return this[$LIST].pop();
 	}
 
+	clear() {
+		return this[$LIST].clear();
+	}
+
 	[Symbol.for('nodejs.util.inspect.custom')]() {
 		return this.constructor.name+" "+JSON.stringify(this.items,null,2);
 	}

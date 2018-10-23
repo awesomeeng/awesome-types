@@ -93,6 +93,16 @@ describe("SortedList",function(){
 		assert.deepStrictEqual(list.items,[]);
 	});
 
+	it("clear",function(){
+		let list = new AwesomeTypes.collections.SortedList(2,3,4,1);
+		assert.deepStrictEqual(list.items,[1,2,3,4]);
+		assert.equal(list.length,4);
+
+		list.clear();
+		assert.deepStrictEqual(list.items,[]);
+		assert.equal(list.length,0);
+	});
+
 	it("contains",function(){
 		let list;
 

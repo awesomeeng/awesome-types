@@ -20,7 +20,7 @@ describe("TimerPool",function(){
 		assert.equal(timerpool.nextTimerExecution,null);
 	});
 
-	it("add/remove",function(){
+	it("addTimer/removeTimer",function(){
 		let timerpool = new TimerPool();
 
 		let id = timerpool.addTimer(100,()=>{});
@@ -29,6 +29,20 @@ describe("TimerPool",function(){
 		assert(timerpool.nextTimerExecution>0);
 
 		timerpool.removeTimer(id);
+		assert.equal(timerpool.timerCount,0);
+		assert.equal(timerpool.nextTimerExecution,null);
+	});
+
+	it("removeAllTimers",function(){
+		let timerpool = new TimerPool();
+
+		timerpool.addTimer(100,()=>{});
+		timerpool.addTimer(100,()=>{});
+		timerpool.addTimer(100,()=>{});
+		assert.equal(timerpool.timerCount,3);
+		assert(timerpool.nextTimerExecution>0);
+
+		timerpool.removeAllTimers();
 		assert.equal(timerpool.timerCount,0);
 		assert.equal(timerpool.nextTimerExecution,null);
 	});

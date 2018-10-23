@@ -16,7 +16,7 @@ describe("Queue",function(){
 		while (queue.length>0) {
 			items.push(queue.dequeue());
 		}
-		queue.enqueue.apply(queue,items);
+		if (items.length>0) queue.enqueue.apply(queue,items);
 		return items;
 	};
 
@@ -74,6 +74,16 @@ describe("Queue",function(){
 		assert.deepStrictEqual(items(queue),[]);
 
 		assert.equal(queue.dequeue(),undefined);
+	});
+
+	it("clear",function(){
+		let queue = new AwesomeTypes.collections.Queue(1,2,3,4);
+		assert.deepStrictEqual(items(queue),[1,2,3,4]);
+		assert.equal(queue.length,4);
+
+		queue.clear();
+		assert.equal(queue.length,0);
+		assert.deepStrictEqual(items(queue),[]);
 	});
 
 	it("clone",function(){

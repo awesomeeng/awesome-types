@@ -110,6 +110,10 @@ class SortedList {
 		this[$LIST].remove.apply(this[$LIST],items);
 	}
 
+	clear() {
+		this[$LIST].clear();
+	}
+
 	pop() {
 		return this[$LIST].pop();
 	}

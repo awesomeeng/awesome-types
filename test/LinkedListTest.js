@@ -233,6 +233,20 @@ describe("LinkedList",function(){
 		assert.deepStrictEqual(list.items,[]);
 	});
 
+	it("clear",function(){
+		let list = new AwesomeTypes.collections.LinkedList(1,2,3,4);
+		assert.deepStrictEqual(list.items,[1,2,3,4]);
+		assert.equal(list.length,4);
+		assert(list.first!==null);
+		assert(list.last!==null);
+
+		list.clear();
+		assert.deepStrictEqual(list.items,[]);
+		assert.equal(list.length,0);
+		assert.equal(list.first,null);
+		assert.equal(list.last,null);
+	});
+
 	it("push",function(){
 		let list = new AwesomeTypes.collections.LinkedList(1,2,3,4);
 		assert.deepStrictEqual(list.items,[1,2,3,4]);

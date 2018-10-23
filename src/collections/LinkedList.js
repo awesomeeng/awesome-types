@@ -179,6 +179,20 @@ class LinkedList {
 		return removed;
 	}
 
+	clear() {
+		let entry = this[$FIRST];
+		while (entry) {
+			let next = entry.next;
+			entry.next = null;
+			entry.previous = null;
+			entry = next;
+		}
+
+		this[$LENGTH] = 0;
+		this[$FIRST] = null;
+		this[$LAST] = null;
+	}
+
 	push(...items) {
 		return this.append.apply(this,items);
 	}
