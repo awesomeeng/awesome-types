@@ -315,5 +315,39 @@ describe("LinkedList",function(){
 		assert.deepStrictEqual(list2.items,[1,2,10,11,12,3,4]);
 	});
 
+	it("getPosition",function(){
+		let list = new AwesomeTypes.collections.LinkedList(1,2,3,4);
+		assert.deepStrictEqual(list.items,[1,2,3,4]);
+
+		assert.equal(list.getPosition(1),0);
+		assert.equal(list.getPosition(2),1);
+		assert.equal(list.getPosition(3),2);
+		assert.equal(list.getPosition(4),3);
+		assert.equal(list.getPosition(5),-1);
+		assert.equal(list.getPosition(123451234),-1);
+		assert.equal(list.getPosition("asdf"),-1);
+		assert.equal(list.getPosition(true),-1);
+		assert.equal(list.getPosition("asdf"),-1);
+		assert.equal(list.getPosition(null),-1);
+	});
+
+	it("getItemAt",function(){
+		let list = new AwesomeTypes.collections.LinkedList(1,2,3,4);
+		assert.deepStrictEqual(list.items,[1,2,3,4]);
+
+		assert.equal(list.getItemAt(3),4);
+		assert.equal(list.getItemAt(2),3);
+		assert.equal(list.getItemAt(1),2);
+		assert.equal(list.getItemAt(0),1);
+
+		assert.throws(()=>{
+			list.getItemAt(-1);
+		});
+		assert.throws(()=>{
+			list.getItemAt(999);
+		});
+	});
+
+
 
 });

@@ -48,6 +48,31 @@ class LinkedList {
 		return false;
 	}
 
+	getPosition(item) {
+		let entry = this[$FIRST];
+		let count = 0;
+		while (entry) {
+			if (entry.item===item) return count;
+			entry = entry.next;
+			count += 1;
+		}
+		return -1;
+	}
+
+	getItemAt(position) {
+		if (!position && position!==0) throw new Error("Missing position.");
+		if (typeof position!=="number") throw new Error("Invalid position; must be a number.");
+		if (position<0) throw new Error("Invalid position; must be >= 0.");
+		if (position>=this.length) throw new Error("Invalid position; must be < length.");
+
+		let entry = this[$FIRST];
+		while (position>0) {
+			entry = entry.next;
+			position -= 1;
+		}
+		return entry.item;
+	}
+
 	before(item) {
 		let entry = seekEntry.call(this,item);
 		if (entry && entry.previous) return entry.previous.item;
