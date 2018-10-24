@@ -7,6 +7,7 @@ const AwesomeUtils = require("@awesomeeng/awesome-utils");
 const SortedList = require("../collections/SortedList");
 
 const $POOL = Symbol("pool");
+const $PENDING = Symbol("pending");
 const $MINTIMER = Symbol("minimumTimer");
 const $EXECTIMER = Symbol("minimumTimer");
 
@@ -18,6 +19,7 @@ class TimerPool {
 		if (typeof minimumTimer!=="number") throw new Error("Invalid minimumTimer; must be a number.");
 
 		this[$POOL] = new SortedList();
+		this[$PENDING] = {};
 		this[$MINTIMER] = Math.max(0,minimumTimer);
 
 		this[$POOL].comparator = comparator;
@@ -61,6 +63,10 @@ class TimerPool {
 		if (!entry) return false;
 
 		this[$POOL].remove(entry);
+		if (this[$PENDING][entry.id]) {
+			clearImmediate(this[$PENDING][entry.id]);
+			delete this[$PENDING][entry.id];
+		}
 
 		schedule.call(this);
 
@@ -69,6 +75,10 @@ class TimerPool {
 
 	removeAllTimers() {
 		this[$POOL].clear();
+		Object.values(this[$PENDING]).forEach((timerId)=>{
+			clearImmediate(timerId);
+		});
+		this[$PENDING] = {};
 
 		schedule.call(this);
 	}
@@ -84,7 +94,7 @@ const schedule = function schedule() {
 	let next = this[$POOL].first;
 	if (!next) return;
 
-	let ms = Math.max(this[$MINTIMER],Date.now()-next.at);
+	let ms = Math.max(this[$MINTIMER],next.at-Date.now());
 	this[$EXECTIMER] = setTimeout(execute.bind(this),ms,next);
 };
 
@@ -92,7 +102,8 @@ const execute = function execute(entry) {
 	clearTimeout(this[$EXECTIMER]);
 
 	this[$POOL].remove(entry);
-	setImmediate(entry.run);
+	let timerId = setImmediate(entry.run);
+	this[$PENDING][entry.id] = timerId;
 
 	schedule.call(this);
 };
