@@ -39,7 +39,7 @@ class Queue {
 	}
 
 	[Symbol.for('nodejs.util.inspect.custom')]() {
-		return this.constructor.name+" "+JSON.stringify(this.items,null,2);
+		return this.constructor.name+" "+JSON.stringify(this[$LIST].items,null,2);
 	}
 }
 
