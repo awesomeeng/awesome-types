@@ -1,10 +1,11 @@
-// (c) 2018, The Awesome Engineering Company, https://awesomeneg.com
+``// (c) 2018, The Awesome Engineering Company, https://awesomeneg.com
 
 "use strict";
 
 const V8 = require("v8");
 
 const AwesomeUtils = require("@awesomeeng/awesome-utils");
+const LockableBuffer = require("./LockableBuffer");
 
 const MAX_SIZE = 536870912;
 
@@ -28,7 +29,6 @@ class LockableCircularBuffer {
 	// 0-3 : length
 	// 4: serialized (0=false,1=true)
 	// 5+length : content
-	//
 
 	static get maximumSize() {
 		return MAX_SIZE;
@@ -39,18 +39,16 @@ class LockableCircularBuffer {
 		if (typeof size!=="number") throw new Error("Invalid size.");
 		if (size<0 || size>MAX_SIZE) throw new Error("size '"+size+"' must be >= 0 and <= "+MAX_SIZE+".");
 
-		this[$BUFFER] = new SharedArrayBuffer(32+size);
+		this[$BUFFER] = new LockableBuffer(12+size);
 		this[$VIEW] = new Uint8Array(this[$BUFFER]);
-		this[$HEADER] = new Uint32Array(this[$BUFFER],0,4);
-		this[$BODY] = new Uint8Array(this[$BUFFER],32,size);
-		this[$LOCK] = new Int32Array(this[$BUFFER],0,1);
+		this[$HEADER] = new Uint32Array(this[$BUFFER],0,3);
+		this[$BODY] = new Uint8Array(this[$BUFFER],12,size);
 
 		this[$VIEW].fill(0,0,16);
 
-		this[$HEADER][0] = 0;	 		// Lock
-		this[$HEADER][1] = size; 		// Size
-		this[$HEADER][2] = 0; 			// Start
-		this[$HEADER][3] = 0;			// End
+		this[$HEADER][0] = size; 		// Size
+		this[$HEADER][1] = 0; 			// Start
+		this[$HEADER][2] = 0;			// End
 	}
 
 	get underlyingBuffer() {
@@ -58,15 +56,15 @@ class LockableCircularBuffer {
 	}
 
 	get size() {
-		return this[$HEADER][1];
+		return this[$HEADER][0];
 	}
 
 	get start() {
-		return this[$HEADER][2];
+		return this[$HEADER][1];
 	}
 
 	get end() {
-		return this[$HEADER][3];
+		return this[$HEADER][2];
 	}
 
 	get used() {
@@ -83,12 +81,43 @@ class LockableCircularBuffer {
 		return !!this.used;
 	}
 
-	read(frequency=1,timeout=100) {
+	read() {
+		if (!this.hasData()) return undefined;
+
+		let lock = this[$BUFFER].lock();
+		if (!lock) return undefined;
+
+		let view = this[$BODY];
+		let header = this[$HEADER];
+		let start = this.start;
+
+		let heading = Buffer.from(view.slice(start,start+5));
+		let length = heading.readUInt32BE(0);
+		start += 5;
+
+		let avail = view.length-start;
+		let data = Buffer.from(view.slice(start,start+Math.min(avail,length)));
+		if (length>data.length) data = Buffer.concat([data,Buffer.from(view.slice(0,length-avail))]);
+		let end = (start+length)%view.length;
+
+		let serialized = heading.readUInt8(4);
+		if (serialized) data = V8.deserialize(data);
+		else data = Buffer.from(data);
+
+		header[1] = end; // set start to where we end.
+
+		this[$BUFFER].unlock();
+
+		return data;
+	}
+
+	readWait() {
 		if (!this.hasData()) return undefined;
 
 		return new Promise(async (resolve,reject)=>{
 			try {
-				await AwesomeUtils.Workers.sabLock(this[$LOCK],0,frequency,timeout);
+				let lock = await this[$BUFFER].waitForLock();
+				if (!lock) return resolve(undefined);
 
 				let view = this[$BODY];
 				let header = this[$HEADER];
@@ -107,9 +136,9 @@ class LockableCircularBuffer {
 				if (serialized) data = V8.deserialize(data);
 				else data = Buffer.from(data);
 
-				header[2] = end; // set start to where we end.
+				header[1] = end; // set start to where we end.
 
-				await AwesomeUtils.Workers.sabUnlock(this[$LOCK],0);
+				this[$BUFFER].unlock();
 
 				resolve(data);
 			}
@@ -124,7 +153,8 @@ class LockableCircularBuffer {
 
 		return new Promise(async (resolve,reject)=>{
 			try {
-				await AwesomeUtils.Workers.sabLock(this[$LOCK],0,frequency,timeout);
+				let lock = await this[$BUFFER].waitForLock(frequency,timeout);
+				if (!lock) return reject("Timed out.");
 
 				let view = this[$BODY];
 				let header = this[$HEADER];
@@ -149,9 +179,9 @@ class LockableCircularBuffer {
 				if (length>avail) view.set(chunk.slice(avail),0);
 				end = (end+length)%view.length;
 
-				header[3] = end; // set ends to where we end.
+				header[2] = end; // set ends to where we end.
 
-				await AwesomeUtils.Workers.sabUnlock(this[$LOCK],0);
+				this[$BUFFER].unlock();
 
 				resolve();
 			}

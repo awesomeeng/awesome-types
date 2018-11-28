@@ -17,12 +17,10 @@ describe("LockableCircularBuffer",function(){
 		assert(new AwesomeTypes.lockables.LockableCircularBuffer(0));
 		assert(new AwesomeTypes.lockables.LockableCircularBuffer(1));
 		assert(new AwesomeTypes.lockables.LockableCircularBuffer(1024));
-		assert(new AwesomeTypes.lockables.LockableCircularBuffer(1024*1024));
-		assert(new AwesomeTypes.lockables.LockableCircularBuffer(1024*1024*512));
 	});
 
 	it("getters",function(){
-		let buffer =new AwesomeTypes.lockables.LockableCircularBuffer(1000,1000);
+		let buffer =new AwesomeTypes.lockables.LockableCircularBuffer(1000);
 
 		assert.equal(buffer.size,1000);
 		assert.equal(buffer.start,0);
@@ -32,8 +30,7 @@ describe("LockableCircularBuffer",function(){
 	});
 
 	it("read/write",async function(){
-		let buffer = new AwesomeTypes.lockables.LockableCircularBuffer(1000,1000);
-		new Uint8Array(buffer.underlyingBuffer).fill(17,16);
+		let buffer = new AwesomeTypes.lockables.LockableCircularBuffer(1000);
 
 		let data = Buffer.alloc(500).fill(255);
 		await buffer.write(data);
@@ -54,8 +51,7 @@ describe("LockableCircularBuffer",function(){
 	});
 
 	it("circular read/write",async function(){
-		let buffer = new AwesomeTypes.lockables.LockableCircularBuffer(103,103);
-		new Uint8Array(buffer.underlyingBuffer).fill(1,16);
+		let buffer = new AwesomeTypes.lockables.LockableCircularBuffer(103);
 
 		let start = 0;
 		let end = 0;
@@ -72,6 +68,7 @@ describe("LockableCircularBuffer",function(){
 					await buffer.write(data);
 					end = (end+75)%103;
 
+					console.log(100,buffer.used,buffer.free);
 					assert.equal(buffer.used,75);
 					assert.equal(buffer.free,28);
 					assert.equal(buffer.start,((75*(i))%103));
