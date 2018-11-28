@@ -92,4 +92,20 @@ describe("LockableCircularBuffer",function(){
 		});
 	});
 
+	it("serialization",async function(){
+		let buffer = new AwesomeTypes.lockables.LockableCircularBuffer(1024);
+
+		let data = {
+			one:1,
+			two:2,
+			three:{
+				four:34
+			}
+		};
+		await buffer.write(data);
+		let read = await buffer.readWait();
+
+		assert.deepStrictEqual(data,read);
+		assert.notEqual(data,read);
+	});
 });

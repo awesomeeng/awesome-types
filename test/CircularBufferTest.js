@@ -16,12 +16,10 @@ describe("CircularBuffer",function(){
 		assert(new AwesomeTypes.collections.CircularBuffer(0));
 		assert(new AwesomeTypes.collections.CircularBuffer(1));
 		assert(new AwesomeTypes.collections.CircularBuffer(1024));
-		assert(new AwesomeTypes.collections.CircularBuffer(1024*1024));
-		assert(new AwesomeTypes.collections.CircularBuffer(1024*1024*512));
 	});
 
 	it("getters",function(){
-		let buffer =new AwesomeTypes.collections.CircularBuffer(1000,1000);
+		let buffer =new AwesomeTypes.collections.CircularBuffer(1000);
 
 		assert.equal(buffer.size,1000);
 		assert.equal(buffer.start,0);
@@ -31,8 +29,7 @@ describe("CircularBuffer",function(){
 	});
 
 	it("read/write",function(){
-		let buffer =new AwesomeTypes.collections.CircularBuffer(1000,1000);
-		new Uint8Array(buffer.underlyingBuffer).fill(17,12);
+		let buffer =new AwesomeTypes.collections.CircularBuffer(1000);
 
 		let data = Buffer.alloc(500).fill(255);
 		buffer.write(data);
@@ -53,8 +50,7 @@ describe("CircularBuffer",function(){
 	});
 
 	it("circular read/write",function(){
-		let buffer = new AwesomeTypes.collections.CircularBuffer(103,103);
-		new Uint8Array(buffer.underlyingBuffer).fill(1,12);
+		let buffer = new AwesomeTypes.collections.CircularBuffer(103);
 
 		let start = 0;
 		let end = 0;
@@ -84,4 +80,20 @@ describe("CircularBuffer",function(){
 		});
 	});
 
+	it("serialization",async function(){
+		let buffer = new AwesomeTypes.collections.CircularBuffer(1024);
+
+		let data = {
+			one:1,
+			two:2,
+			three:{
+				four:34
+			}
+		};
+		await buffer.write(data);
+		let read = await buffer.read();
+
+		assert.deepStrictEqual(data,read);
+		assert.notEqual(data,read);
+	});
 });
