@@ -64,17 +64,17 @@ describe("LockableCircularBuffer",function(){
 					assert.equal(buffer.start,((75*(i))%103));
 					assert.equal(buffer.end,((75*(i))%103));
 
-					let data = Buffer.alloc(70).fill(i+1);
+					let data = Buffer.alloc(70).fill(i);
 					await buffer.write(data);
 					end = (end+75)%103;
 
-					console.log(100,buffer.used,buffer.free);
 					assert.equal(buffer.used,75);
 					assert.equal(buffer.free,28);
 					assert.equal(buffer.start,((75*(i))%103));
 					assert.equal(buffer.end,((75*(i+1))%103));
 
-					let read = await buffer.read();
+					let read = await buffer.readWait();
+					assert(data.equals(read));
 					assert(read.equals(data));
 					start = (start+75)%103;
 

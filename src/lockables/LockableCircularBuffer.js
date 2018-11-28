@@ -4,7 +4,6 @@
 
 const V8 = require("v8");
 
-const AwesomeUtils = require("@awesomeeng/awesome-utils");
 const LockableBuffer = require("./LockableBuffer");
 
 const MAX_SIZE = 536870912;
@@ -13,7 +12,6 @@ const $BUFFER = Symbol("view");
 const $VIEW = Symbol("view");
 const $HEADER = Symbol("header");
 const $BODY = Symbol("body");
-const $LOCK = Symbol("lock");
 
 class LockableCircularBuffer {
 
@@ -42,7 +40,7 @@ class LockableCircularBuffer {
 		this[$BUFFER] = new LockableBuffer(12+size);
 		this[$VIEW] = new Uint8Array(this[$BUFFER]);
 		this[$HEADER] = new Uint32Array(this[$BUFFER],0,3);
-		this[$BODY] = new Uint8Array(this[$BUFFER],12,size);
+		this[$BODY] = new Uint8Array(this[$BUFFER].slice(12,size+12));
 
 		this[$VIEW].fill(0,0,16);
 
@@ -119,18 +117,18 @@ class LockableCircularBuffer {
 				let lock = await this[$BUFFER].waitForLock();
 				if (!lock) return resolve(undefined);
 
-				let view = this[$BODY];
+				let body = this[$BODY];
 				let header = this[$HEADER];
 				let start = this.start;
 
-				let heading = Buffer.from(view.slice(start,start+5));
+				let heading = Buffer.from(body.slice(start,start+5));
 				let length = heading.readUInt32BE(0);
 				start += 5;
 
-				let avail = view.length-start;
-				let data = Buffer.from(view.slice(start,start+Math.min(avail,length)));
-				if (length>data.length) data = Buffer.concat([data,Buffer.from(view.slice(0,length-avail))]);
-				let end = (start+length)%view.length;
+				let avail = body.length-start;
+				let data = Buffer.from(body.slice(start,start+Math.min(avail,length)));
+				if (length>data.length) data = Buffer.concat([data,Buffer.from(body.slice(0,length-avail))]);
+				let end = (start+length)%body.length;
 
 				let serialized = heading.readUInt8(4);
 				if (serialized) data = V8.deserialize(data);
@@ -153,10 +151,8 @@ class LockableCircularBuffer {
 
 		return new Promise(async (resolve,reject)=>{
 			try {
-				let lock = await this[$BUFFER].waitForLock(frequency,timeout);
-				if (!lock) return reject("Timed out.");
 
-				let view = this[$BODY];
+				let body = this[$BODY];
 				let header = this[$HEADER];
 				let end = this.end;
 				if (data===undefined || data===null) throw new Error("Missing data.");
@@ -172,12 +168,15 @@ class LockableCircularBuffer {
 				chunk.writeUInt32BE(data.length,0);
 				chunk.writeUInt8(serialized,4);
 
-				if (chunk.length>view.length) throw new Error("Data to big to write to right view.");
+				if (chunk.length>body.length) throw new Error("Data to big to write.");
 
-				let avail = view.length-end;
-				view.set(chunk.slice(0,Math.min(avail,length)),end);
-				if (length>avail) view.set(chunk.slice(avail),0);
-				end = (end+length)%view.length;
+				let lock = await this[$BUFFER].waitForLock(frequency,timeout);
+				if (!lock) return reject("Timed out.");
+
+				let avail = body.length-end;
+				body.set(chunk.slice(0,Math.min(avail,length)),end);
+				if (length>avail) body.set(chunk.slice(avail),0);
+				end = (end+length)%body.length;
 
 				header[2] = end; // set ends to where we end.
 

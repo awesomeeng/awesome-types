@@ -31,7 +31,7 @@ class LockableBuffer /*extends Buffer*/ {
 		return b;
 	}
 
-	get raw() {
+	get underlyingBuffer() {
 		return this[$SAB];
 	}
 
