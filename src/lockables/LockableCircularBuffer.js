@@ -33,14 +33,23 @@ class LockableCircularBuffer {
 	}
 
 	constructor(size=65536) {
-		if (size===undefined || size===null) throw new Error("Missing size.");
-		if (typeof size!=="number") throw new Error("Invalid size.");
-		if (size<0 || size>MAX_SIZE) throw new Error("size '"+size+"' must be >= 0 and <= "+MAX_SIZE+".");
+		let buffer;
+		if (size && size instanceof SharedArrayBuffer) {
+			buffer = new LockableBuffer(size);
+			size = buffer.length-16;
+		}
+		else {
+			if (size===undefined || size===null) throw new Error("Missing size.");
+			if (typeof size!=="number") throw new Error("Invalid size.");
+			if (size<0 || size>MAX_SIZE) throw new Error("size '"+size+"' must be >= 0 and <= "+MAX_SIZE+".");
 
-		this[$BUFFER] = new LockableBuffer(12+size);
-		this[$VIEW] = new Uint8Array(this[$BUFFER]);
-		this[$HEADER] = new Uint32Array(this[$BUFFER],0,3);
-		this[$BODY] = new Uint8Array(this[$BUFFER].slice(12,size+12));
+			buffer = new LockableBuffer(12+size);
+		}
+
+		this[$BUFFER] = buffer;
+		this[$VIEW] = new Uint8Array(buffer);
+		this[$HEADER] = new Uint32Array(buffer,0,3);
+		this[$BODY] = new Uint8Array(buffer.slice(12,size+12));
 
 		this[$VIEW].fill(0,0,16);
 
@@ -50,7 +59,7 @@ class LockableCircularBuffer {
 	}
 
 	get underlyingBuffer() {
-		return this[$BUFFER];
+		return this[$BUFFER].underlyingBuffer;
 	}
 
 	get size() {
@@ -198,8 +207,8 @@ class LockableCircularBuffer {
 			end: this.end,
 			used: this.used,
 			free: this.free,
-			view: this[$VIEW][Symbol.for('nodejs.util.inspect.custom')](),
-			body: this[$BODY][Symbol.for('nodejs.util.inspect.custom')]()
+			view: this[$VIEW],
+			body: this[$BODY]
 		};
 		return obj;
 	}

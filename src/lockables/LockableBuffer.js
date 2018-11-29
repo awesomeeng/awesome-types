@@ -8,17 +8,25 @@ const $SAB = Symbol("buffer");
 const $LOCK = Symbol("view");
 
 class LockableBuffer /*extends Buffer*/ {
-	constructor(length) {
-		if (length===undefined || length===null) throw new Error("Missing length.");
-		if (typeof length!=="number") throw new Error("Invalid length.");
-		if (length<0) throw new Error("Invalid length; must be >= 0.");
+	constructor(size) {
+		let sab;
+		if (size && size instanceof SharedArrayBuffer) {
+			sab = size;
+			size = sab.size-4;
+		}
+		else {
+			if (size===undefined || size===null) throw new Error("Missing size.");
+			if (typeof size!=="number") throw new Error("Invalid size.");
+			if (size<0) throw new Error("Invalid size; must be >= 0.");
 
-		let sab = new SharedArrayBuffer(length+4);
+			sab = new SharedArrayBuffer(size+4);
+		}
+
 		this[$SAB] = sab;
 		this[$LOCK] = new Int32Array(sab,0,1);
 
 		let b = Buffer.from(sab,4);
-		b.raw = this.raw;
+		b.underlyingBuffer = this.underlyingBuffer;
 		b.locked = this.locked.bind(this);
 		b.isLockOwner = this.isLockOwner.bind(this);
 		b.lock = this.lock.bind(this);
@@ -33,6 +41,10 @@ class LockableBuffer /*extends Buffer*/ {
 
 	get underlyingBuffer() {
 		return this[$SAB];
+	}
+
+	get size() {
+		return this[$SAB]-4;
 	}
 
 	locked() {
