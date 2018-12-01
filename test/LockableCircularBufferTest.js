@@ -13,7 +13,6 @@ const AwesomeUtils = require("@awesomeeng/awesome-utils");
 
 describe("LockableCircularBuffer",function(){
 	it("construtor",function(){
-		assert(new AwesomeTypes.lockables.LockableCircularBuffer());
 		assert(new AwesomeTypes.lockables.LockableCircularBuffer(0));
 		assert(new AwesomeTypes.lockables.LockableCircularBuffer(1));
 		assert(new AwesomeTypes.lockables.LockableCircularBuffer(1024));
@@ -108,4 +107,32 @@ describe("LockableCircularBuffer",function(){
 		assert.deepStrictEqual(data,read);
 		assert.notEqual(data,read);
 	});
+
+	it("edges",async function(){
+		let buffer = new AwesomeTypes.lockables.LockableCircularBuffer(10);
+
+		await AwesomeUtils.Promise.series(new Array(100).fill(0),(x,i)=>{
+			return new Promise(async (resolve,reject)=>{
+				try {
+					let data = Buffer.alloc(4).fill(i);
+					await buffer.write(data);
+					assert.equal(buffer.used,9);
+					assert.equal(buffer.free,1);
+
+					let read = await buffer.readWait();
+					assert(data.equals(read));
+					assert(read.equals(data));
+					assert.equal(buffer.used,0);
+					assert.equal(buffer.free,10);
+
+					resolve();
+				}
+				catch (ex) {
+					return reject(ex);
+				}
+			});
+		});
+	});
+
+
 });

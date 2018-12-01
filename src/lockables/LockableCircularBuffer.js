@@ -8,7 +8,7 @@ const LockableBuffer = require("./LockableBuffer");
 
 const MAX_SIZE = 536870912;
 
-const $BUFFER = Symbol("view");
+const $BUFFER = Symbol("buffer");
 const $VIEW = Symbol("view");
 const $HEADER = Symbol("header");
 const $BODY = Symbol("body");
@@ -32,11 +32,11 @@ class LockableCircularBuffer {
 		return MAX_SIZE;
 	}
 
-	constructor(size=65536) {
+	constructor(size) {
 		let buffer;
 		if (size && size instanceof SharedArrayBuffer) {
 			buffer = new LockableBuffer(size);
-			size = buffer.length-16;
+			size = buffer.size-12;
 		}
 		else {
 			if (size===undefined || size===null) throw new Error("Missing size.");
@@ -44,18 +44,16 @@ class LockableCircularBuffer {
 			if (size<0 || size>MAX_SIZE) throw new Error("size '"+size+"' must be >= 0 and <= "+MAX_SIZE+".");
 
 			buffer = new LockableBuffer(12+size);
+			new Uint8Array(buffer).fill(0,0,12);
 		}
 
 		this[$BUFFER] = buffer;
-		this[$VIEW] = new Uint8Array(buffer);
-		this[$HEADER] = new Uint32Array(buffer,0,3);
-		this[$BODY] = new Uint8Array(buffer.slice(12,size+12));
+		this[$VIEW] = new Uint8Array(buffer.underlyingBuffer);
 
-		this[$VIEW].fill(0,0,16);
+		this[$HEADER] = new Uint32Array(buffer.underlyingBuffer,4,3);
+		this[$BODY] = new Uint8Array(buffer.underlyingBuffer,16);
 
 		this[$HEADER][0] = size; 		// Size
-		this[$HEADER][1] = 0; 			// Start
-		this[$HEADER][2] = 0;			// End
 	}
 
 	get underlyingBuffer() {
@@ -94,58 +92,57 @@ class LockableCircularBuffer {
 		let lock = this[$BUFFER].lock();
 		if (!lock) return undefined;
 
-		let view = this[$BODY];
+		let body = this[$BODY];
 		let header = this[$HEADER];
 		let start = this.start;
 
-		let heading = Buffer.from(view.slice(start,start+5));
+		let heading = readChunk(body,start,5);
 		let length = heading.readUInt32BE(0);
-		start += 5;
+		start = (start+5)%body.length;
 
-		let avail = view.length-start;
-		let data = Buffer.from(view.slice(start,start+Math.min(avail,length)));
-		if (length>data.length) data = Buffer.concat([data,Buffer.from(view.slice(0,length-avail))]);
-		let end = (start+length)%view.length;
+		let data = readChunk(body,start,length);
+		start = (start+length)%body.length;
+
+		header[1] = start; // set start.
+
+		this[$BUFFER].unlock();
 
 		let serialized = heading.readUInt8(4);
 		if (serialized) data = V8.deserialize(data);
 		else data = Buffer.from(data);
 
-		header[1] = end; // set start to where we end.
-
-		this[$BUFFER].unlock();
-
 		return data;
 	}
 
-	readWait() {
+	readWait(frequency=1,timeout=10) {
+		if (typeof frequency!=="number") throw new Error("Invalid frequency; must be a number.");
+		if (typeof timeout!=="number") throw new Error("Invalid timeout; must be a number.");
+
 		if (!this.hasData()) return undefined;
 
 		return new Promise(async (resolve,reject)=>{
 			try {
-				let lock = await this[$BUFFER].waitForLock();
+				let lock = await this[$BUFFER].waitForLock(frequency,timeout);
 				if (!lock) return resolve(undefined);
 
 				let body = this[$BODY];
 				let header = this[$HEADER];
 				let start = this.start;
 
-				let heading = Buffer.from(body.slice(start,start+5));
+				let heading = readChunk(body,start,5);
 				let length = heading.readUInt32BE(0);
-				start += 5;
+				start = (start+5)%body.length;
 
-				let avail = body.length-start;
-				let data = Buffer.from(body.slice(start,start+Math.min(avail,length)));
-				if (length>data.length) data = Buffer.concat([data,Buffer.from(body.slice(0,length-avail))]);
-				let end = (start+length)%body.length;
+				let data = readChunk(body,start,length);
+				start = (start+length)%body.length;
+
+				header[1] = start; // set start
+
+				this[$BUFFER].unlock();
 
 				let serialized = heading.readUInt8(4);
 				if (serialized) data = V8.deserialize(data);
 				else data = Buffer.from(data);
-
-				header[1] = end; // set start to where we end.
-
-				this[$BUFFER].unlock();
 
 				resolve(data);
 			}
@@ -157,10 +154,11 @@ class LockableCircularBuffer {
 
 	write(data,frequency=1,timeout=100) {
 		if (data===undefined || data===null) throw new Error("Missing data.");
+		if (typeof frequency!=="number") throw new Error("Invalid frequency; must be a number.");
+		if (typeof timeout!=="number") throw new Error("Invalid timeout; must be a number.");
 
 		return new Promise(async (resolve,reject)=>{
 			try {
-
 				let body = this[$BODY];
 				let header = this[$HEADER];
 				let end = this.end;
@@ -177,7 +175,7 @@ class LockableCircularBuffer {
 				chunk.writeUInt32BE(data.length,0);
 				chunk.writeUInt8(serialized,4);
 
-				if (chunk.length>body.length) throw new Error("Data to big to write.");
+				if (chunk.length>this.free) throw new Error("Write of "+length+" bytes would exceed buffer free space of "+this.free+" bytes.");
 
 				let lock = await this[$BUFFER].waitForLock(frequency,timeout);
 				if (!lock) return reject("Timed out.");
@@ -213,5 +211,22 @@ class LockableCircularBuffer {
 		return obj;
 	}
 }
+
+/**
+ * @private
+ *
+ * Read a chunk of data from the buffer in a circular manner.
+ *
+ * @param  {Uint8Array} buffer
+ * @param  {number} start
+ * @param  {number} length
+ * @return {Buffer}
+ */
+const readChunk = function readChunk(buffer,start,length) {
+	let avail = buffer.length-start;
+	let data = Buffer.from(buffer.slice(start,start+Math.min(avail,length)));
+	if (length>data.length) data = Buffer.concat([data,Buffer.from(buffer.slice(0,length-avail))]);
+	return data;
+};
 
 module.exports = LockableCircularBuffer;

@@ -5,38 +5,47 @@
 const AwesomeUtils = require("@awesomeeng/awesome-utils");
 
 const $SAB = Symbol("buffer");
-const $LOCK = Symbol("view");
+const $LOCK = Symbol("lock");
 
 class LockableBuffer /*extends Buffer*/ {
 	constructor(size) {
-		let sab;
+		let buffer;
 		if (size && size instanceof SharedArrayBuffer) {
-			sab = size;
-			size = sab.size-4;
+			buffer = size;
+			size = buffer.byteLength-4;
 		}
 		else {
 			if (size===undefined || size===null) throw new Error("Missing size.");
 			if (typeof size!=="number") throw new Error("Invalid size.");
 			if (size<0) throw new Error("Invalid size; must be >= 0.");
 
-			sab = new SharedArrayBuffer(size+4);
+			buffer = new SharedArrayBuffer(size+4);
 		}
 
-		this[$SAB] = sab;
-		this[$LOCK] = new Int32Array(sab,0,1);
+		this[$SAB] = buffer;
+		this[$LOCK] = new Int32Array(buffer,0,1);
 
-		let b = Buffer.from(sab,4);
-		b.underlyingBuffer = this.underlyingBuffer;
-		b.locked = this.locked.bind(this);
-		b.isLockOwner = this.isLockOwner.bind(this);
-		b.lock = this.lock.bind(this);
-		b.waitForLock = this.waitForLock.bind(this);
-		b.waitLock = this.waitLock.bind(this);
-		b.blockUntilLock = this.blockUntilLock.bind(this);
-		b.blockLock = this.blockLock.bind(this);
-		b.unlock = this.unlock.bind(this);
+		let view = new Uint8Array(buffer,4);
 
-		return b;
+		return new Proxy(this,{
+			has: (target,key)=>{
+				return !!target[key] || typeof key==="number" && key>=0 && key<size && !!view[key] || !!view[key] || false;
+			},
+			get: (target,key)=>{
+				return target[key] || typeof key==="number" && key>=0 && key<size && view[key] || view[key] && view[key] instanceof Function && view[key].bind(view) || view[key] || false;
+			},
+			set: (target,key,value)=>{
+				if (typeof key==="number") {
+					if (key>=0 && key<size && !!view[key]) {
+						view[key] = value;
+						return true;
+					}
+					throw new Error("Index out of bounds; must be >=0 or <"+size+".");
+				}
+				target[key] = value;
+				return true;
+			}
+		});
 	}
 
 	get underlyingBuffer() {
@@ -44,7 +53,7 @@ class LockableBuffer /*extends Buffer*/ {
 	}
 
 	get size() {
-		return this[$SAB]-4;
+		return this[$SAB].byteLength-4;
 	}
 
 	locked() {
