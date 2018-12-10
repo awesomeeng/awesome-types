@@ -44,7 +44,7 @@ class LockableCircularBuffer {
 			if (size<0 || size>MAX_SIZE) throw new Error("size '"+size+"' must be >= 0 and <= "+MAX_SIZE+".");
 
 			buffer = new LockableBuffer(12+size);
-			new Uint8Array(buffer).fill(0,0,12);
+			new Uint8Array(buffer).fill(0,4,12);
 		}
 
 		this[$BUFFER] = buffer;

@@ -24,6 +24,7 @@ class LockableBuffer /*extends Buffer*/ {
 
 		this[$SAB] = buffer;
 		this[$LOCK] = new Int32Array(buffer,0,1);
+		AwesomeUtils.Workers.initializeLock(this[$LOCK]);
 
 		let view = new Uint8Array(buffer,4);
 
