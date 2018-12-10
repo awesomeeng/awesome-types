@@ -3,3 +3,6 @@
 #### **Version 1.0.0**
 
  - Initial release.
+ - Adds LinkedList, Stack, Queue, SortedList, CircularBuffer, LockableBuffer, LockableCircularBuffer, and TimerPool.
+
+ 

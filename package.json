@@ -1,6 +1,6 @@
 {
   "name": "@awesomeeng/awesome-types",
-  "version": "2.1.0",
+  "version": "1.0.0",
   "author": "the awesome engineering company",
   "license": "MIT",
   "contributors": [
@@ -11,7 +11,7 @@
     "node": ">=10.5.0"
   },
   "dependencies": {
-    "@awesomeeng/awesome-utils": "^1.2.0"
+    "@awesomeeng/awesome-utils": "^1.4.1"
   },
   "devDependencies": {
     "jsdoc-to-markdown": "*",
@@ -19,7 +19,9 @@
   },
   "optionalDependencies": {},
   "scripts": {
-    "docs": "jsdoc2md src/** --separators > docs/API.md"
+    "docs": "jsdoc2md src/** --separators > docs/API.md",
+	"test": "mocha test",
+    "tests": "mocha test"
   },
   "description": "Collection of type classes for JavaScript.",
   "directories": {
@@ -31,14 +33,34 @@
     "url": "git+https://github.com/awesomeeng/awesome-types.git"
   },
   "keywords": [
-	"type",
-	"types",
+	"datatype",
+	"datatypes",
+	"data type",
+	"data types",
 	"collection",
 	"collections",
+	"structure",
+	"structures",
 	"datastructure",
 	"data structure",
 	"datastructures",
 	"data structures",
+	"syncronous structure",
+	"syncronous structures",
+	"syncronous collection",
+	"syncronous collections",
+	"syncronous datastructure",
+	"syncronous data structure",
+	"syncronous datastructures",
+	"syncronous data structures",
+	"asyncronous structure",
+	"asyncronous structures",
+	"asyncronous collection",
+	"asyncronous collections",
+	"asyncronous datastructure",
+	"asyncronous data structure",
+	"asyncronous datastructures",
+	"asyncronous data structures",
     "awesome",
     "awesomeeng",
     "awesome",
