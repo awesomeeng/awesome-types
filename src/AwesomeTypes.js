@@ -11,6 +11,7 @@ module.exports = {
 		LockableCircularBuffer: require("./lockables/LockableCircularBuffer")
 	},
 	processing: {
-		TimerPool: require("./processing/TimerPool")
+		TimerPool: require("./processing/TimerPool"),
+		PromiseStatePool: require("./processing/PromiseStatePool")
 	}
 };
