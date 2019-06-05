@@ -3,7 +3,7 @@ Collection of type classes for JavaScript.
 
 # AwesomeTypes
 
-Javascript data structure classes for Enterprise Ready nodejs applications
+Javascript data structure classes for enterprise nodejs applications
 
 ## Disclaimer
 
